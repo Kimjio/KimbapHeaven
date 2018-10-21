@@ -161,7 +161,26 @@
                 </Grid>
             </PivotItem>
             <PivotItem Header="통계">
-                <TextBlock Text="TODO 통계" />
+                <Grid
+                    Margin="-11, 0, -11, 0"
+                    Background="White">
+                    <Grid 
+                        Padding="0, 10, 0, 0"
+                        Margin="11, 0, 11, 0">
+                        <TextBlock Text="TODO 통계" />
+                    </Grid>
+                </Grid>
+            </PivotItem>
+            <PivotItem Header="설정">
+                <Grid
+                    Margin="-11, 0, -11, 0"
+                    Background="White">
+                    <Grid
+                        Padding="0, 10, 0, 0"
+                        Margin="11, 0, 11, 0">
+                        <TextBlock Text="TODO 설정" />
+                    </Grid>
+                </Grid>
             </PivotItem>
         </Pivot>
     </Grid>
