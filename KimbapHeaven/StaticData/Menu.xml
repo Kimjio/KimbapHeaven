@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Menu>
+  <Cate id="31">
+    <Food name="파스타">
+      <Price>6500</Price>
+      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25854cbbf8.png</Url>
+    </Food>
+    <Food name="까르보라면">
+      <Price>6000</Price>
+      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25854516d1.jpg</Url>
+    </Food>
+    <Food name="까르보떡볶이">
+      <Price>6000</Price>
+      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25853464a4.png</Url>
+    </Food>
+    <Food name="해물파스타">
+      <Price>6000</Price>
+      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25855e6128.jpg</Url>
+    </Food>
+    <Food name="매운볶음우동">
+      <Price>7000</Price>
+      <Url>https://cdn.imweb.me/thumbnail/20170416/58f2587c193cf.jpg</Url>
+    </Food>
+  </Cate>
+</Menu>
