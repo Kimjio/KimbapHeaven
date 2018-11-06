@@ -14,7 +14,12 @@
                 Name="splashProgress"
                 Orientation="Vertical">
             <TextBlock Name="splashProgressText" Text="불러오는 중..." HorizontalAlignment="Center" Margin="0, 0, 0, 8" Foreground="White"/>
-            <ProgressBar Name="splashProgressBar" Width="250" HorizontalAlignment="Center" Foreground="White"/>
+            <ProgressBar Name="splashProgressBar" Width="250" HorizontalAlignment="Center" Margin="0, 0, 0, 20" Foreground="White"/>
+            <Button Name="splashRestartButton" Opacity="0" Visibility="Collapsed" Style="{ThemeResource TextBlockButtonStyle}" HorizontalAlignment="Center" Foreground="White" Content="다시 시작">
+                <Button.OpacityTransition>
+                    <ScalarTransition/>
+                </Button.OpacityTransition>
+            </Button>
         </StackPanel>
     </Canvas>
 </Page>

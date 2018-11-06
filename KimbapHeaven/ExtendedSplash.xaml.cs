@@ -6,11 +6,13 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Activation;
+using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI;
 using Windows.UI.Composition;
 using Windows.UI.Core;
+using Windows.UI.Popups;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -21,12 +23,10 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 
-// 빈 페이지 항목 템플릿에 대한 설명은 https://go.microsoft.com/fwlink/?LinkId=234238에 나와 있습니다.
-
 namespace KimbapHeaven
 {
     /// <summary>
-    /// 자체적으로 사용하거나 프레임 내에서 탐색할 수 있는 빈 페이지입니다.
+    /// 확장 된 Splash 페이지입니다.
     /// </summary>
     public sealed partial class ExtendedSplash : Page
     {
@@ -57,6 +57,14 @@ namespace KimbapHeaven
 
                 // Optional: Add a progress ring to your splash screen to show users that content is loading
                 PositionBar();
+
+                splashRestartButton.Click += (sender, e) =>
+                {
+                    splashProgressBar.ShowPaused = true;
+                    #pragma warning disable CS4014
+                    CoreApplication.RequestRestartAsync("");
+                    #pragma warning restore CS4014
+                };
             }
 
             // Create a Frame to act as the navigation context
@@ -116,7 +124,16 @@ namespace KimbapHeaven
 
         async void DismissExtendedSplash()
         {
-            await Utils.GetMenuAsync((int progress, string message, bool indeterminate) => {
+            //20초 후 다시 시작 버튼 표시
+            #pragma warning disable CS4014
+            Task.Delay(20000).ContinueWith(task =>
+            {
+                splashRestartButton.Visibility = Visibility.Visible;
+                splashRestartButton.Opacity = 1;
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+            #pragma warning restore CS4014
+            await Utils.GetMenuAsync((int progress, string message, bool indeterminate) =>
+            {
                 splashProgressText.Text = message;
                 if (progress >= 0)
                     splashProgressBar.Value = progress;

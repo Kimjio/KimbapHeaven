@@ -6,28 +6,14 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:media="using:Windows.UI.Xaml.Media"
-    Background="{ThemeResource SystemControlAcrylicWindowBrush}">
+    Background="{ThemeResource AcrylicHostBackgroundBrush}">
 
-    <Page.Transitions>
-        <TransitionCollection>
-            <EntranceThemeTransition x:Name="EntranceTransition"/>
-        </TransitionCollection>
-    </Page.Transitions>
-
-    <Page.Resources>
-        <ResourceDictionary>
-            <media:AcrylicBrush x:Key="AcrylicHostBackgroundBrush"
-                                BackgroundSource="HostBackdrop" 
-                                TintOpacity="0" />
-
-            <media:AcrylicBrush x:Key="AcrylicBackgroundBrush"
-                                BackgroundSource="Backdrop" 
-                                TintOpacity="0" />
-        </ResourceDictionary>
-    </Page.Resources>
     <Grid
         ScrollViewer.VerticalScrollBarVisibility="Visible"
         ScrollViewer.VerticalScrollMode="Enabled">
+        <Grid.BackgroundTransition>
+            <BrushTransition/>
+        </Grid.BackgroundTransition>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -56,14 +42,24 @@
                 </Grid>
             </Grid>
         </Grid>
-        <Border Grid.Row="1" HorizontalAlignment="Right" Margin="11,0,11,0" Padding="10" Background="Transparent">
+        <Border
+            Grid.Row="1"
+            HorizontalAlignment="Right"
+            Margin="11,0,11,0"
+            Padding="10"
+            Background="Transparent">
             <TextBlock Name="Time" FontSize="20"/>
         </Border>
         <Pivot x:Name="Pivot" Grid.Row="1">
+            <Pivot.Transitions>
+                <TransitionCollection>
+                    <EntranceThemeTransition IsStaggeringEnabled="True"/>
+                </TransitionCollection>
+            </Pivot.Transitions>
             <PivotItem 
                 Header="좌석"
                 Margin="-11,0,-11,0"
-                Background="White">
+                Background="{ThemeResource SystemAltHighColor}">
                 <Grid x:Name="Table">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -91,12 +87,12 @@
                                 <Grid 
                                     IsTapEnabled="False"
                                     Height="200"
-                                    Background="GhostWhite">
+                                    Background="{ThemeResource AcrylicHostBackgroundBrush}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="*"/>
                                     </Grid.RowDefinitions>
-                                    <Grid Grid.Row="0" Background="WhiteSmoke">
+                                    <Grid Grid.Row="0" Background="{ThemeResource SystemControlAcrylicElementBrush}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
@@ -108,14 +104,14 @@
                                                        TextWrapping="Wrap"
                                                        Padding="10"/>
                                         </Border>
-                                        <local:UserButton 
+                                        <Button 
                                             Grid.Column="1"
-                                            ID="{x:Bind Index.ToString()}"
+                                            Tag="{x:Bind Index.ToString()}"
                                             Background="Transparent"
-                                            Click="UserButton_Click"
+                                            Click="DoneButton_Click"
                                             ToolTipService.ToolTip="완료">
                                             <SymbolIcon Symbol="Accept"/>
-                                        </local:UserButton>
+                                        </Button>
                                     </Grid>
                                     <ListView Grid.Row="1"
                                               ScrollViewer.VerticalScrollBarVisibility="Hidden"
@@ -145,41 +141,38 @@
                             </DataTemplate>
                         </GridView.ItemTemplate>
                     </GridView>
-                    <!--TODO Animate-->
                     <local:TableControl
-                        x:Name="TableControlPanel" Visibility="Collapsed"
+                        x:Name="TableControlPanel"
+                        Visibility="Collapsed"
+                        Opacity="0"
                         Grid.Row="0"
                         Margin="11, 0, 11 ,0"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch">
-                        <local:TableControl.Transitions>
-                            <TransitionCollection>
-                                <PaneThemeTransition/>
-                            </TransitionCollection>
-                        </local:TableControl.Transitions>
+                        <local:TableControl.OpacityTransition>
+                            <ScalarTransition/>
+                        </local:TableControl.OpacityTransition>
                     </local:TableControl>
                 </Grid>
             </PivotItem>
             <PivotItem Header="통계">
                 <Grid
                     Margin="-11, 0, -11, 0"
-                    Background="White">
+                    Background="{ThemeResource SystemAltHighColor}">
                     <Grid 
                         Padding="0, 10, 0, 0"
                         Margin="11, 0, 11, 0">
-                        <TextBlock Text="TODO 통계" />
+
                     </Grid>
                 </Grid>
             </PivotItem>
             <PivotItem Header="설정">
                 <Grid
                     Margin="-11, 0, -11, 0"
-                    Background="White">
-                    <Grid
+                    Background="{ThemeResource SystemAltHighColor}">
+                    <local:SettingsControl
                         Padding="0, 10, 0, 0"
-                        Margin="11, 0, 11, 0">
-                        <TextBlock Text="TODO 설정" />
-                    </Grid>
+                        Margin="11, 0, 11, 0"/>
                 </Grid>
             </PivotItem>
         </Pivot>

@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace KimbapHeaven
 {
-    public static class IEnumerableExtension
+    public static class Extension
     {
-        public static string ToStringList<T>(this IEnumerable<T> list)
+        public static string ToStringWithNewLine<T>(this IEnumerable<T> list)
         {
             StringBuilder stringBuilder = new StringBuilder();
             foreach (var item in list)
@@ -17,6 +17,11 @@ namespace KimbapHeaven
             }
 
             return stringBuilder.ToString();
+        }
+
+        public static List<T> Clone<T>(this List<T> list) where T : ICloneable
+        {
+            return list.Select(obj => (T) obj.Clone()).ToList();
         }
     }
 }

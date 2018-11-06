@@ -9,6 +9,7 @@ using Windows.Foundation.Collections;
 using Windows.UI;
 using Windows.UI.Composition;
 using Windows.UI.Core;
+using Windows.UI.Popups;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -34,7 +35,7 @@ namespace KimbapHeaven
         public MainPage()
         {
             InitializeComponent();
-
+            
             #region TitleBar
             ApplicationViewTitleBar formattableTitleBar = ApplicationView.GetForCurrentView().TitleBar;
             formattableTitleBar.ButtonBackgroundColor = Colors.Transparent;
@@ -97,23 +98,13 @@ namespace KimbapHeaven
         #region ItemOnClick
         private void GridView_ItemClick(object sender, ItemClickEventArgs e)
         {
-            TableData tableData = (TableData) e.ClickedItem;
-            TableControlPanel.Pay += TableControlPanel_PayEvent;
-            //TODO TableControl
-            /*ContentDialog content = new ContentDialog()
+            //Enter 입력 시 Visible 이면 넘어가기
+            if (TableControlPanel.Visibility != Visibility.Visible)
             {
-                Title = "Title",
-                Content = "Content",
-                PrimaryButtonText = "Primary",
-                CloseButtonText = "Close"
-            };
-            ContentDialogResult result = await content.ShowAsync();
-            if (result.Equals(ContentDialogResult.Primary))
-            {
-                
-            }*/
-
-            TableControlPanel.Show(tableData);
+                TableData tableData = (TableData) e.ClickedItem;
+                TableControlPanel.Pay += TableControlPanel_PayEvent;
+                TableControlPanel.Show(tableData);
+            }
         }
 
         private void TableControlPanel_PayEvent(List<FoodData> foodDatas, TableData tableData)
@@ -122,11 +113,11 @@ namespace KimbapHeaven
         }
         #endregion
 
-        private void UserButton_Click(object sender, RoutedEventArgs e)
+        private void DoneButton_Click(object sender, RoutedEventArgs e)
         {
-            UserButton button = (UserButton) sender;
+            Button button = (Button) sender;
 
-            TableData table = ViewModel.TableDatas[int.Parse(button.ID) - 1];
+            TableData table = ViewModel.TableDatas[int.Parse(button.Tag.ToString()) - 1];
 
             table.OrderedDateTime = DateTime.MinValue;
             table.FoodDatas = new List<FoodData>();
@@ -137,10 +128,22 @@ namespace KimbapHeaven
     {
         public List<TableData> TableDatas;
 
-        public TableViewModel()
+        public TableViewModel() : this(Settings.GetInt("seat_size", 10)) { }
+
+        public TableViewModel(int seatSize)
         {
             TableDatas = new List<TableData>();
-            for (int i = 1; i <= 10; i++)
+            for (int i = 1; i <= seatSize; i++)
+            {
+                TableData tableData = new TableData(i);
+                TableDatas.Add(tableData);
+            }
+        }
+
+        public void Update(int seatSize)
+        {
+            TableDatas.Clear();
+            for (int i = 1; i <= seatSize; i++)
             {
                 TableData tableData = new TableData(i);
                 TableDatas.Add(tableData);

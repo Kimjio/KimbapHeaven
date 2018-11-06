@@ -11,10 +11,13 @@ namespace KimbapHeaven
 {
     public class FoodData : ICloneable, INotifyPropertyChanged
     {
-        public FoodData(Type type, string name, int price, int count, Uri uri)
+        public FoodData(Type type, string name, int price, int count, Uri uri) : this(type, name, string.Empty, price, count, uri) { }
+
+        public FoodData(Type type, string name, string eanCode, int price, int count, Uri uri)
         {
             FoodType = type;
             Name = name;
+            EANCode = eanCode;
             Price = DefaultPrice = price;
             Count = count;
             ImageUri = uri;
@@ -22,7 +25,7 @@ namespace KimbapHeaven
 
         public async Task<FoodData> PreloadImage(int indexCate, int indexFood, int cateMax, int foodMax, Utils.UpdateProgress progress)
         {
-            Image = await Utils.ResizedImage(ImageUri, 512, 512, indexCate, indexFood, cateMax, foodMax, progress);
+            Image = await Utils.ResizedImage(ImageUri, indexCate, indexFood, cateMax, foodMax, progress);
             return this;
         }
         
@@ -38,6 +41,7 @@ namespace KimbapHeaven
         }
         public Type FoodType { get; set; }
         public string Name { get; set; }
+        public string EANCode { get; set; }
         private int price;
         public int DefaultPrice { get; }
         public int Price
@@ -68,7 +72,7 @@ namespace KimbapHeaven
         }
         public BitmapImage Image { get; set; }
 
-        private Uri ImageUri;
+        private readonly Uri ImageUri;
 
         public object Clone()
         {

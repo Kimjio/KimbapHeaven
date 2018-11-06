@@ -16,6 +16,10 @@ namespace KimbapHeaven
 {
     public static class Utils
     {
+        public static readonly string KOREA_EAN_CODE = "880";
+
+        public static readonly int DEFAULT_SEAT_SIZE = 10;
+
         private static StorageFile xmlFile;
 
         private static readonly FoodData.Type[] types = { FoodData.Type.NEW, FoodData.Type.KIMBAP, FoodData.Type.MEAL, FoodData.Type.FLOURBASED, FoodData.Type.PORKCUTLET, FoodData.Type.SEASON };
@@ -29,6 +33,13 @@ namespace KimbapHeaven
         private static List<FoodData> FoodDatasSEASON = new List<FoodData>();
 
         private static List<Cate> Cates = new List<Cate>();
+
+        public enum ImageQuality
+        {
+            High = 0,
+            Middle = 1,
+            Low = 2
+        }
 
         /// <summary>
         /// 백분율이 변경되었을 때 처리할 메소드를 나타냅니다.
@@ -56,6 +67,50 @@ namespace KimbapHeaven
 
             progressListener?.Invoke(0, "메뉴 불러오는 중...", true);
             await LoadMenu(progressListener);
+        }
+
+        public static ImageQuality GetCurrentImageQuality()
+        {
+            ImageQuality imageQuality = ImageQuality.High;
+            string QualityString = Settings.GetString("ImageQuality", "High");
+            switch (QualityString)
+            {
+                case "High":
+                    imageQuality = ImageQuality.High;
+                    break;
+
+                case "Middle":
+                    imageQuality = ImageQuality.Middle;
+                    break;
+
+                case "Low":
+                    imageQuality = ImageQuality.Low;
+                    break;
+            }
+
+            return imageQuality;
+        }
+
+        public static FoodData FindFoodDataByEANCode(string receivedBarcodeChars)
+        {
+            foreach (FoodData food in FoodDatas)
+            {
+                if (food.EANCode.Equals(receivedBarcodeChars))
+                    return food;
+            }
+
+            return null;
+        }
+
+        public static FoodData FindFoodDataByName(IList<object> foods, string name)
+        {
+            foreach (FoodData food in foods)
+            {
+                if (food.Name.Equals(name))
+                    return food;
+            }
+
+            return null;
         }
 
         private async static Task ParseHTML(FoodData.Type type)
@@ -152,6 +207,12 @@ namespace KimbapHeaven
             }
         }
 
+        public static async void ClearFile()
+        {
+            await xmlFile.DeleteAsync();
+            Debug.WriteLine(xmlFile.IsAvailable);
+        }
+
         private async static Task LoadMenu(UpdateProgress progress)
         {
             var input = await xmlFile.OpenReadAsync();
@@ -170,12 +231,16 @@ namespace KimbapHeaven
                 for (int indexFood = 0; indexFood < cateNode.SelectNodes("Food").Count; indexFood++)
                 {
                     XmlNode foodNode = cateNode.SelectNodes("Food")[indexFood];
-                    FoodDatas.Add(await new FoodData(type, foodNode.Attributes["name"].Value, int.Parse(foodNode.SelectSingleNode("Price").InnerText), 0, new Uri(foodNode.SelectSingleNode("Url").InnerText)).PreloadImage(indexCate, foodCount, menuNode.ChildNodes.Count, foodMax, progress));
+                    if (foodNode.SelectSingleNode("EAN") == null)
+                        FoodDatas.Add(await new FoodData(type, foodNode.Attributes["name"].Value, int.Parse(foodNode.SelectSingleNode("Price").InnerText), 0, new Uri(foodNode.SelectSingleNode("Url").InnerText)).PreloadImage(indexCate, foodCount, menuNode.ChildNodes.Count, foodMax, progress));
+                    else
+                        FoodDatas.Add(await new FoodData(type, foodNode.Attributes["name"].Value, foodNode.SelectSingleNode("EAN").InnerText, int.Parse(foodNode.SelectSingleNode("Price").InnerText), 0, new Uri(foodNode.SelectSingleNode("Url").InnerText)).PreloadImage(indexCate, foodCount, menuNode.ChildNodes.Count, foodMax, progress));
+
                     foodCount++;
                 }
             }
 
-            BindLists();
+            InitLists();
         }
 
         public static List<FoodData> GetMenu()
@@ -183,7 +248,7 @@ namespace KimbapHeaven
             return FoodDatas;
         }
 
-        private static void BindLists()
+        private static void InitLists()
         {
             FoodDatasNEW = GetMenuByType(FoodData.Type.NEW);
             FoodDatasKIMBAP = GetMenuByType(FoodData.Type.KIMBAP);
@@ -296,8 +361,26 @@ namespace KimbapHeaven
             return Count;
         }
 
-        public static async Task<BitmapImage> ResizedImage(Uri imageSource, int maxWidth, int maxHeight, int indexCate, int indexFood, int cateMax, int foodMax, UpdateProgress progress)
+        public static async Task<BitmapImage> ResizedImage(Uri imageSource, int indexCate, int indexFood, int cateMax, int foodMax, UpdateProgress progress)
         {
+            int max = 512;
+
+            switch (GetCurrentImageQuality())
+            {
+                case ImageQuality.High:
+                    max = 512;
+                    break;
+
+                case ImageQuality.Middle:
+                    max = 256;
+                    break;
+
+                case ImageQuality.Low:
+                    max = 128;
+                    break;
+
+            }
+
             BitmapImage sourceImage = new BitmapImage();
             sourceImage.ImageOpened += (object sender, RoutedEventArgs e) =>
             {
@@ -309,8 +392,8 @@ namespace KimbapHeaven
             sourceImage.SetSource(await RandomAccessStreamReference.CreateFromUri(imageSource).OpenReadAsync());
             var origHeight = sourceImage.PixelHeight;
             var origWidth = sourceImage.PixelWidth;
-            var ratioX = maxWidth / (float) origWidth;
-            var ratioY = maxHeight / (float) origHeight;
+            var ratioX = max / (float) origWidth;
+            var ratioY = max / (float) origHeight;
             var ratio = Math.Min(ratioX, ratioY);
             var newHeight = (int) (origHeight * ratio);
             var newWidth = (int) (origWidth * ratio);

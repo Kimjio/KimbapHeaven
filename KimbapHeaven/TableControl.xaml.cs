@@ -5,8 +5,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.RegularExpressions;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -34,6 +36,12 @@ namespace KimbapHeaven
         /// </summary>
         public event PayEventHandler Pay;
 
+        /*
+         코카콜라 - 8801094017200
+         펩시콜라 - 8801056070809
+        */
+        private string receivedBarcodeChars = string.Empty;
+
         private int TotalPrice
         {
             get
@@ -52,9 +60,67 @@ namespace KimbapHeaven
         public TableControl()
         {
             InitializeComponent();
-
+            Opacity = 0;
             CloseButton.Click += CloseButton_Click;
             FoodTypePivot.SelectionChanged += FoodTypePivot_SelectionChanged;
+            Window.Current.CoreWindow.CharacterReceived += CoreWindow_CharacterReceived;
+        }
+
+        //see https://stackoverflow.com/a/15325499
+        private static Regex _gtinRegex = new Regex("^(\\d{8}|\\d{12,14})$");
+
+        /// <summary>
+        /// 올바른 바코드인지 확인하는 메소드
+        /// </summary>
+        /// <param name="code">받아온 바코드</param>
+        /// <returns>바코드 정상 여부</returns>
+        public static bool IsValidGtin(string code)
+        {
+            if (!(_gtinRegex.IsMatch(code))) return false;
+            code = code.PadLeft(14, '0');
+            int[] mult = Enumerable.Range(0, 13).Select(i => ((int) (code[i] - '0')) * ((i % 2 == 0) ? 3 : 1)).ToArray();
+            int sum = mult.Sum();
+            return (10 - (sum % 10)) % 10 == int.Parse(code[13].ToString());
+        }
+
+        //바코드기 입력 후 끝에 Enter 키 입력 발생 ("\r\n")
+        private void CoreWindow_CharacterReceived(CoreWindow sender, CharacterReceivedEventArgs args)
+        {
+
+            if (Visibility == Visibility.Collapsed) return;
+            char inputChar = (char) args.KeyCode;
+            if (inputChar == '\r')
+            {
+                if (IsValidGtin(receivedBarcodeChars))
+                {
+                    Debug.WriteLine("OK: " + receivedBarcodeChars);
+                    FoodData foodData = Utils.FindFoodDataByEANCode(receivedBarcodeChars);
+                    FoodData listedFood;
+                    if ((listedFood = Utils.FindFoodDataByName(FoodList.Items, foodData.Name)) == null)
+                    {
+                        FoodData cloneData = (FoodData) foodData.Clone();
+                        cloneData.Count = 1;
+
+                        FoodList.Items.Add(cloneData);
+                        FoodList.SelectedItem = cloneData;
+                        TotalPrice += cloneData.DefaultPrice;
+                        PayButton.IsEnabled = true;
+                    }
+                    else
+                    {
+                        listedFood.Count++;
+                        listedFood.Price += listedFood.DefaultPrice;
+                        TotalPrice += listedFood.DefaultPrice;
+                    }
+                    SelectedFoodData = (FoodData) FoodList.SelectedItem;
+                    SetFoodImage(foodData.Image);
+                }
+
+                receivedBarcodeChars = string.Empty;
+            }
+
+            if (char.IsDigit(inputChar))
+                receivedBarcodeChars += inputChar;
         }
 
         private void TotalPrice_ValueChanged()
@@ -93,10 +159,12 @@ namespace KimbapHeaven
         public void Show(TableData tableData)
         {
             TargetTable = tableData;
-            AddFoodDatas(TargetTable.FoodDatas);
+            AddFoodDatas(TargetTable.FoodDatas.Clone());
             SetTableIndex(TargetTable.Index);
             SetOrderedTime(TargetTable.OrderedDateTime);
+            PayButton.IsEnabled = FoodList.Items.Any();
             Visibility = Visibility.Visible;
+            Opacity = 1;
         }
 
         private void AddFoodDatas(List<FoodData> foodDatas)
@@ -104,7 +172,7 @@ namespace KimbapHeaven
             foreach (FoodData foodData in foodDatas)
             {
                 FoodList.Items.Add(foodData);
-                TotalPrice += foodData.DefaultPrice;
+                TotalPrice += foodData.Price;
             }
         }
 
@@ -128,7 +196,7 @@ namespace KimbapHeaven
             ContentDialog content = new ContentDialog()
             {
                 Title = "결제 확인",
-                Content = FoodList.Items.ToStringList() +
+                Content = FoodList.Items.ToStringWithNewLine() +
                 Environment.NewLine +
                 "총 가격: " + TotalPrice,
                 PrimaryButtonText = "결제",
@@ -160,6 +228,7 @@ namespace KimbapHeaven
         {
             TargetTable = null;
             Pay = null;
+            //Window.Current.CoreWindow.CharacterReceived -= CoreWindow_CharacterReceived;
             TableIndexBox.Text = TableIndexBox.Text.Remove(0);
             if (OrderedLabel.Visibility == Visibility.Visible)
             {
@@ -176,12 +245,14 @@ namespace KimbapHeaven
             SelectedFoodData = null;
             FoodGridView.SelectedItem = null;
             FoodImage.Source = null;
+            PayButton.IsEnabled = false;
         }
 
         public void Close()
         {
             ClearAll();
             Visibility = Visibility.Collapsed;
+            Opacity = 0;
         }
 
         private void FoodList_ItemClick(object sender, ItemClickEventArgs e)
@@ -202,6 +273,14 @@ namespace KimbapHeaven
                 FoodList.Items.Add(cloneData);
                 FoodList.SelectedItem = cloneData;
                 TotalPrice += cloneData.Price;
+                PayButton.IsEnabled = true;
+            }
+            else
+            {
+                FoodData listedFood = Utils.FindFoodDataByName(FoodList.Items, foodData.Name);
+                listedFood.Count++;
+                listedFood.Price += listedFood.DefaultPrice;
+                TotalPrice += listedFood.DefaultPrice;
             }
             SelectedFoodData = (FoodData) FoodList.SelectedItem;
             SetFoodImage(foodData.Image);
@@ -245,23 +324,25 @@ namespace KimbapHeaven
                 if (!FoodList.Items.Any())
                 {
                     FoodImage.Source = null;
+                    PayButton.IsEnabled = false;
                 }
             }
         }
 
         private void ItemCloseButton_Click(object sender, RoutedEventArgs e)
         {
-            UserButton button = (UserButton) sender;
+            Button button = (Button) sender;
 
             foreach (FoodData foodData in FoodList.Items)
             {
-                if (foodData.Name == button.ID)
+                if (foodData.Name == button.Tag.ToString())
                 {
                     FoodList.Items.Remove(foodData);
                     TotalPrice -= foodData.Price;
                     if (!FoodList.Items.Any())
                     {
                         FoodImage.Source = null;
+                        PayButton.IsEnabled = false;
                     }
                     break;
                 }
