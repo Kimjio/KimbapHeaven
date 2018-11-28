@@ -6,29 +6,33 @@
 
     <Application.Resources>
         <ResourceDictionary>
-            <AcrylicBrush x:Key="AcrylicHostBackgroundBrush"
-                                BackgroundSource="HostBackdrop"
-                                TintColor="{ThemeResource SystemChromeAltHighColor}"
-                                FallbackColor="{ThemeResource SystemChromeMediumColor}"
-                                TintOpacity=".5" />
+            <AcrylicBrush
+                x:Key="AcrylicHostBackgroundBrush"
+                BackgroundSource="HostBackdrop"
+                FallbackColor="{ThemeResource SystemChromeMediumColor}"
+                TintColor="{ThemeResource SystemChromeAltHighColor}"
+                TintOpacity=".5" />
 
-            <AcrylicBrush x:Key="AcrylicBackgroundBrush"
-                                BackgroundSource="Backdrop" 
-                                TintColor="{ThemeResource SystemChromeAltHighColor}"
-                                FallbackColor="{ThemeResource SystemChromeMediumColor}"
-                                TintOpacity=".5" />
+            <AcrylicBrush
+                x:Key="AcrylicBackgroundBrush"
+                BackgroundSource="Backdrop"
+                FallbackColor="{ThemeResource SystemChromeMediumColor}"
+                TintColor="{ThemeResource SystemChromeAltHighColor}"
+                TintOpacity=".5" />
 
-            <AcrylicBrush x:Key="AcrylicHostBackgroundMediumBrush"
-                                BackgroundSource="HostBackdrop"
-                                TintColor="{ThemeResource SystemChromeAltMediumColor}"
-                                FallbackColor="{ThemeResource SystemChromeAltMediumColor}"
-                                TintOpacity=".6" />
+            <AcrylicBrush
+                x:Key="AcrylicHostBackgroundMediumBrush"
+                BackgroundSource="HostBackdrop"
+                FallbackColor="{ThemeResource SystemChromeAltMediumColor}"
+                TintColor="{ThemeResource SystemChromeAltMediumColor}"
+                TintOpacity=".6" />
 
-            <AcrylicBrush x:Key="AcrylicBackgroundMediumBrush"
-                                BackgroundSource="Backdrop" 
-                                TintColor="{ThemeResource SystemChromeAltMediumColor}"
-                                FallbackColor="{ThemeResource SystemChromeAltMediumColor}"
-                                TintOpacity=".6" />
+            <AcrylicBrush
+                x:Key="AcrylicBackgroundMediumBrush"
+                BackgroundSource="Backdrop"
+                FallbackColor="{ThemeResource SystemChromeAltMediumColor}"
+                TintColor="{ThemeResource SystemChromeAltMediumColor}"
+                TintOpacity=".6" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

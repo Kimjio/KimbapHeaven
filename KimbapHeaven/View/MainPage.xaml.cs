@@ -102,25 +102,30 @@ namespace KimbapHeaven
             if (TableControlPanel.Visibility != Visibility.Visible)
             {
                 TableData tableData = (TableData) e.ClickedItem;
-                TableControlPanel.Pay += TableControlPanel_PayEvent;
+                TableControlPanel.Pay += TableControlPanel_Pay;
+                TableControlPanel.Order += TableControlPanel_Order;
+                TableControlPanel.Canceled += TableControlPanel_Canceled;
+
                 TableControlPanel.Show(tableData);
             }
         }
 
-        private void TableControlPanel_PayEvent(List<FoodData> foodDatas, TableData tableData)
+        #endregion
+
+        private void TableControlPanel_Order(List<FoodData> foodDatas, TableData tableData)
         {
             tableData.FoodDatas = foodDatas;
         }
-        #endregion
 
-        private void DoneButton_Click(object sender, RoutedEventArgs e)
+        private void TableControlPanel_Canceled(TableData tableData)
         {
-            Button button = (Button) sender;
+            tableData.Clear();
+        }
 
-            TableData table = ViewModel.TableDatas[int.Parse(button.Tag.ToString()) - 1];
-
-            table.OrderedDateTime = DateTime.MinValue;
-            table.FoodDatas = new List<FoodData>();
+        private void TableControlPanel_Pay(TableData tableData)
+        {
+            tableData.Clear();
+            StateControlPanel.Update();
         }
     }
 
@@ -133,16 +138,6 @@ namespace KimbapHeaven
         public TableViewModel(int seatSize)
         {
             TableDatas = new List<TableData>();
-            for (int i = 1; i <= seatSize; i++)
-            {
-                TableData tableData = new TableData(i);
-                TableDatas.Add(tableData);
-            }
-        }
-
-        public void Update(int seatSize)
-        {
-            TableDatas.Clear();
             for (int i = 1; i <= seatSize; i++)
             {
                 TableData tableData = new TableData(i);

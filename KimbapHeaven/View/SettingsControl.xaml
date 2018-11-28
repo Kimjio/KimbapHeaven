@@ -27,7 +27,19 @@
             HorizontalAlignment="Left">
             <TextBlock Text="메뉴" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="0, 0, 0, 25" />
             <TextBlock Text="사용자 지정 메뉴 추가" Margin="0, 0, 0, 10"/>
-            <Button Content="추가" Margin="0, 0, 0, 20"/>
+            <StackPanel Orientation="Horizontal" Margin="0, 0, 0, 20">
+                <Button Name="AddMenuButton" Content="추가"/>
+                <StackPanel Name="AddingPanel" Visibility="Collapsed" Orientation="Horizontal">
+                    <ProgressRing Margin="8, 0, 8, 0" Name="StatusRing" IsActive="True"/>
+                    <TextBlock Name="Status" VerticalAlignment="Center" TextAlignment="Center" Text="추가 중..."/>
+                </StackPanel>
+                <SymbolIcon Name="StatusSymbol" Margin="10, 0, 0, 0" Visibility="Collapsed" Symbol="Accept" >
+                    <SymbolIcon.OpacityTransition>
+                        <ScalarTransition/>
+                    </SymbolIcon.OpacityTransition>
+                </SymbolIcon>
+            </StackPanel>
+
             <TextBlock Text="지금 메뉴 초기화" Margin="0, 0, 0, 10"/>
             <Button Content="초기화">
                 <Button.Flyout>

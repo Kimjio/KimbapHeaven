@@ -58,12 +58,10 @@ namespace KimbapHeaven
                 // Optional: Add a progress ring to your splash screen to show users that content is loading
                 PositionBar();
 
-                splashRestartButton.Click += (sender, e) =>
+                splashRestartButton.Click += async (sender, e) =>
                 {
                     splashProgressBar.ShowPaused = true;
-                    #pragma warning disable CS4014
-                    CoreApplication.RequestRestartAsync("");
-                    #pragma warning restore CS4014
+                    await CoreApplication.RequestRestartAsync("");
                 };
             }
 

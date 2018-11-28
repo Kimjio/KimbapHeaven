@@ -36,7 +36,7 @@ namespace KimbapHeaven
         public void Clear()
         {
             OrderedDateTime = DateTime.MinValue;
-            FoodDatas.Clear();
+            FoodDatas = new List<FoodData>();
         }
 
         public object Clone()

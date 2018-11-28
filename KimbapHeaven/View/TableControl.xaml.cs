@@ -32,14 +32,20 @@ namespace KimbapHeaven
         private int total;
 
         /// <summary>
+        /// 주문 시 발생합니다.
+        /// </summary>
+        public event OrderEventHandler Order;
+
+        /// <summary>
+        /// 취소 시 발생합니다.
+        /// </summary>
+        public event CanceledEventHandler Canceled;
+
+        /// <summary>
         /// 결제되면 발생합니다.
         /// </summary>
         public event PayEventHandler Pay;
 
-        /*
-         코카콜라 - 8801094017200
-         펩시콜라 - 8801056070809
-        */
         private string receivedBarcodeChars = string.Empty;
 
         private int TotalPrice
@@ -78,7 +84,7 @@ namespace KimbapHeaven
         {
             if (!(_gtinRegex.IsMatch(code))) return false;
             code = code.PadLeft(14, '0');
-            int[] mult = Enumerable.Range(0, 13).Select(i => ((int) (code[i] - '0')) * ((i % 2 == 0) ? 3 : 1)).ToArray();
+            int[] mult = Enumerable.Range(0, 13).Select(i => (code[i] - '0') * ((i % 2 == 0) ? 3 : 1)).ToArray();
             int sum = mult.Sum();
             return (10 - (sum % 10)) % 10 == int.Parse(code[13].ToString());
         }
@@ -104,7 +110,7 @@ namespace KimbapHeaven
                         FoodList.Items.Add(cloneData);
                         FoodList.SelectedItem = cloneData;
                         TotalPrice += cloneData.DefaultPrice;
-                        PayButton.IsEnabled = true;
+                        OrderButton.IsEnabled = true;
                     }
                     else
                     {
@@ -153,6 +159,9 @@ namespace KimbapHeaven
                 case 6:
                     FoodGridView.ItemsSource = Utils.GetMenu(FoodData.Type.SEASON);
                     break;
+                case 7:
+                    FoodGridView.ItemsSource = Utils.GetMenu(FoodData.Type.UNDIFINED);
+                    break;
             }
         }
 
@@ -162,7 +171,8 @@ namespace KimbapHeaven
             AddFoodDatas(TargetTable.FoodDatas.Clone());
             SetTableIndex(TargetTable.Index);
             SetOrderedTime(TargetTable.OrderedDateTime);
-            PayButton.IsEnabled = FoodList.Items.Any();
+            OrderButton.IsEnabled = FoodList.Items.Any();
+            PayButton.IsEnabled = tableData.OrderedDateTime == DateTime.MinValue ? false : true;
             Visibility = Visibility.Visible;
             Opacity = 1;
         }
@@ -191,11 +201,18 @@ namespace KimbapHeaven
             Close();
         }
 
+        private void OrderButton_Click(object sender, RoutedEventArgs e)
+        {
+            Order?.Invoke(Utils.ConvertListToFoodDataList(FoodList.Items.ToList()), TargetTable);
+            TargetTable.OrderedDateTime = DateTime.Now;
+            Close();
+        }
+
         private async void PayButton_Click(object sender, RoutedEventArgs e)
         {
             ContentDialog content = new ContentDialog()
             {
-                Title = "결제 확인",
+                Title = "결제 확인 (결제 방식: " + ((bool)PayTypeCard.IsChecked ? "카드)" : "현금)"),
                 Content = FoodList.Items.ToStringWithNewLine() +
                 Environment.NewLine +
                 "총 가격: " + TotalPrice,
@@ -205,8 +222,9 @@ namespace KimbapHeaven
             ContentDialogResult result = await content.ShowAsync();
             if (result.Equals(ContentDialogResult.Primary))
             {
-                Pay?.Invoke(Utils.ConvertListToFoodDataList(FoodList.Items.ToList()), TargetTable);
-                TargetTable.OrderedDateTime = DateTime.Now;
+                List<FoodData> list = Utils.ConvertListToFoodDataList(FoodList.Items.ToList());
+                StateManager.AddState(list, (bool) PayTypeCard.IsChecked ? StateManager.PayType.Card : StateManager.PayType.Cash);
+                Pay?.Invoke(TargetTable);
                 Close();
             }
         }
@@ -227,15 +245,20 @@ namespace KimbapHeaven
         public void ClearAll()
         {
             TargetTable = null;
+            Order = null;
             Pay = null;
-            //Window.Current.CoreWindow.CharacterReceived -= CoreWindow_CharacterReceived;
             TableIndexBox.Text = TableIndexBox.Text.Remove(0);
+            CollapseOrderedTime();
+            Clear();
+        }
+
+        private void CollapseOrderedTime()
+        {
             if (OrderedLabel.Visibility == Visibility.Visible)
             {
                 OrderedTimeBox.Text = OrderedTimeBox.Text.Remove(0);
                 OrderedLabel.Visibility = Visibility.Collapsed;
             }
-            Clear();
         }
 
         private void Clear()
@@ -245,6 +268,7 @@ namespace KimbapHeaven
             SelectedFoodData = null;
             FoodGridView.SelectedItem = null;
             FoodImage.Source = null;
+            OrderButton.IsEnabled = false;
             PayButton.IsEnabled = false;
         }
 
@@ -265,23 +289,24 @@ namespace KimbapHeaven
         private void FoodGridView_ItemClick(object sender, ItemClickEventArgs e)
         {
             FoodData foodData = (FoodData) e.ClickedItem;
+            FoodData listData;
             if (!Utils.ContainsFoodDataByName(FoodList.Items, foodData.Name))
             {
-                FoodData cloneData = (FoodData) foodData.Clone();
-                cloneData.Count = 1;
+                listData = (FoodData) foodData.Clone();
 
-                FoodList.Items.Add(cloneData);
-                FoodList.SelectedItem = cloneData;
-                TotalPrice += cloneData.Price;
-                PayButton.IsEnabled = true;
+                FoodList.Items.Add(listData);
+                OrderButton.IsEnabled = true;
             }
             else
             {
-                FoodData listedFood = Utils.FindFoodDataByName(FoodList.Items, foodData.Name);
-                listedFood.Count++;
-                listedFood.Price += listedFood.DefaultPrice;
-                TotalPrice += listedFood.DefaultPrice;
+                listData = Utils.FindFoodDataByName(FoodList.Items, foodData.Name);
             }
+            listData.Count++;
+            listData.Price += listData.DefaultPrice;
+            TotalPrice += listData.DefaultPrice;
+            FoodList.SelectedItem = listData;
+
+
             SelectedFoodData = (FoodData) FoodList.SelectedItem;
             SetFoodImage(foodData.Image);
         }
@@ -312,6 +337,8 @@ namespace KimbapHeaven
         private void RemoveAllButton_Click(object sender, RoutedEventArgs e)
         {
             Clear();
+            CollapseOrderedTime();
+            Canceled?.Invoke(TargetTable);
         }
 
         private void RemoveButton_Click(object sender, RoutedEventArgs e)
@@ -324,6 +351,7 @@ namespace KimbapHeaven
                 if (!FoodList.Items.Any())
                 {
                     FoodImage.Source = null;
+                    OrderButton.IsEnabled = false;
                     PayButton.IsEnabled = false;
                 }
             }
@@ -342,6 +370,7 @@ namespace KimbapHeaven
                     if (!FoodList.Items.Any())
                     {
                         FoodImage.Source = null;
+                        OrderButton.IsEnabled = false;
                         PayButton.IsEnabled = false;
                     }
                     break;
@@ -351,9 +380,23 @@ namespace KimbapHeaven
     }
 
     /// <summary>
-    /// PayEvent 이벤트를 처리할 메서드를 나타냅니다.
+    /// OrderEvent 이벤트를 처리할 메서드를 나타냅니다.
     /// </summary>
     /// <param name="foodDatas">추가된 음식 목록입니다.</param>
     /// <param name="tableData">선택된 테이블입니다.</param>
-    public delegate void PayEventHandler(List<FoodData> foodDatas, TableData tableData);
+    public delegate void OrderEventHandler(List<FoodData> foodDatas, TableData tableData);
+
+    /// <summary>
+    /// CanceledEvent 이벤트를 처리할 메서드를 나타냅니다.
+    /// </summary>
+    /// <param name="tableData">선택된 테이블입니다.</param>
+    /// 
+    public delegate void CanceledEventHandler(TableData tableData);
+
+    /// <summary>
+    /// PayEvent 이벤트를 처리할 메서드를 나타냅니다.
+    /// </summary>
+    /// <param name="tableData">선택된 테이블입니다.</param>
+    /// 
+    public delegate void PayEventHandler(TableData tableData);
 }

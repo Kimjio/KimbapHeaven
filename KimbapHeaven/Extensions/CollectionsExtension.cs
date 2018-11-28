@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace KimbapHeaven
 {
-    public static class Extension
+    public static class CollectionsExtension
     {
         public static string ToStringWithNewLine<T>(this IEnumerable<T> list)
         {

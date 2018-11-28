@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Windows.Storage;
+﻿using Windows.Storage;
 
 namespace KimbapHeaven
 {
@@ -183,12 +178,12 @@ namespace KimbapHeaven
         #endregion
 
         #region object
-        public static void PutObject(string name, object value)
+        public static void Put(string name, object value)
         {
             LocalSettings.Values[name] = value;
         }
 
-        public static object GetObject(string name, object defValue)
+        public static object Get(string name, object defValue)
         {
             object value = LocalSettings.Values[name];
 

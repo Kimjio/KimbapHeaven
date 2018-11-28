@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -75,7 +76,7 @@ namespace KimbapHeaven
                             }
                             catch (Exception ex)
                             {
-                                System.Diagnostics.Debug.WriteLine(ex);
+                                Debug.WriteLine(ex);
                             }
                         }
                     }

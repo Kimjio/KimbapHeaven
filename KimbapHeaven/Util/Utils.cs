@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.UI.Xaml;
@@ -16,14 +17,14 @@ namespace KimbapHeaven
 {
     public static class Utils
     {
-        public static readonly string KOREA_EAN_CODE = "880";
+        public const string KOREA_EAN_CODE = "880";
 
-        public static readonly int DEFAULT_SEAT_SIZE = 10;
+        public const int DEFAULT_SEAT_SIZE = 10;
+        private const int FALLBACK_PRICE = 3400;
 
         private static StorageFile xmlFile;
 
-        private static readonly FoodData.Type[] types = { FoodData.Type.NEW, FoodData.Type.KIMBAP, FoodData.Type.MEAL, FoodData.Type.FLOURBASED, FoodData.Type.PORKCUTLET, FoodData.Type.SEASON };
-
+        public static readonly FoodData.Type[] FoodTypes = { FoodData.Type.NEW, FoodData.Type.KIMBAP, FoodData.Type.MEAL, FoodData.Type.FLOURBASED, FoodData.Type.PORKCUTLET, FoodData.Type.SEASON, FoodData.Type.UNDIFINED };
         private static List<FoodData> FoodDatas = new List<FoodData>();
         private static List<FoodData> FoodDatasNEW = new List<FoodData>();
         private static List<FoodData> FoodDatasKIMBAP = new List<FoodData>();
@@ -31,8 +32,9 @@ namespace KimbapHeaven
         private static List<FoodData> FoodDatasFLOURBASED = new List<FoodData>();
         private static List<FoodData> FoodDatasPORKCUTLET = new List<FoodData>();
         private static List<FoodData> FoodDatasSEASON = new List<FoodData>();
+        private static List<FoodData> FoodDatasUNDIFINED = new List<FoodData>();
 
-        private static List<Cate> Cates = new List<Cate>();
+        private static List<XmlCate> Cates = new List<XmlCate>();
 
         public enum ImageQuality
         {
@@ -56,8 +58,9 @@ namespace KimbapHeaven
             {
                 progressListener?.Invoke(0, "데이터 가져오는 중...", true);
 
-                foreach (FoodData.Type type in types)
+                foreach (FoodData.Type type in FoodTypes)
                 {
+                    if (type == FoodData.Type.UNDIFINED) continue;
                     await ParseHTML(type);
                 }
 
@@ -113,10 +116,21 @@ namespace KimbapHeaven
             return null;
         }
 
+        public static FoodData FindFoodDataByName(IList<FoodData> foods, string name)
+        {
+            foreach (FoodData food in foods)
+            {
+                if (food.Name.Equals(name))
+                    return food;
+            }
+
+            return null;
+        }
+
         private async static Task ParseHTML(FoodData.Type type)
         {
-            List<Food> Foods = new List<Food>();
-            string url = "http://www.kimbab1009.com/" + (int) type;
+            List<XmlFood> Foods = new List<XmlFood>();
+            string url = "http://www.kimbab1009.com/" + (int)type;
 
             HtmlWeb web = new HtmlWeb();
             HtmlDocument doc = await web.LoadFromWebAsync(url);
@@ -134,11 +148,7 @@ namespace KimbapHeaven
                     title.RemoveChild(title.SelectSingleNode("//span"));
                 string name = ItemContainer.SelectSingleNode("//p[@class='title']").InnerText;
 
-                if (name == string.Empty)
-                {
-                    continue;
-                }
-                if (ContainsFoodByName(Foods, name))
+                if (name == string.Empty || ContainsFoodByName(Foods, name))
                 {
                     continue;
                 }
@@ -151,28 +161,28 @@ namespace KimbapHeaven
                     imgUrl = ItemContainer.SelectSingleNode("//div[@class='img_wrap _lightbox_item cursor_pointer ']").GetAttributeValue("data-src", string.Empty);
 
 
-                Foods.Add(new Food(name, imgUrl));
+                Foods.Add(new XmlFood(name, imgUrl));
             }
-            Cates.Add(new Cate(type, Foods));
+            Cates.Add(new XmlCate(type, Foods));
         }
 
-        private async static void WriteToXml(List<Cate> cates)
+        private async static void WriteToXml(List<XmlCate> cates)
         {
             XmlWriter xmlWriter = XmlWriter.Create(await xmlFile.OpenStreamForWriteAsync());
             xmlWriter.WriteStartDocument();
             xmlWriter.WriteStartElement("Menu");
             {
-                foreach (Cate cate in cates)
+                foreach (XmlCate cate in cates)
                 {
                     xmlWriter.WriteStartElement("Cate");
-                    xmlWriter.WriteAttributeString("id", ((int) cate.type).ToString());
+                    xmlWriter.WriteAttributeString("id", ((int)cate.type).ToString());
                     {
-                        foreach (Food food in cate.foods)
+                        foreach (XmlFood food in cate.foods)
                         {
                             xmlWriter.WriteStartElement("Food");
                             {
                                 xmlWriter.WriteAttributeString("name", food.Name);
-                                xmlWriter.WriteElementString("Price", "6500");
+                                xmlWriter.WriteElementString("Price", FALLBACK_PRICE.ToString());
                                 xmlWriter.WriteElementString("Url", food.ImgUrl);
                             }
                             xmlWriter.WriteEndElement();
@@ -210,7 +220,6 @@ namespace KimbapHeaven
         public static async void ClearFile()
         {
             await xmlFile.DeleteAsync();
-            Debug.WriteLine(xmlFile.IsAvailable);
         }
 
         private async static Task LoadMenu(UpdateProgress progress)
@@ -227,7 +236,7 @@ namespace KimbapHeaven
             for (int indexCate = 0; indexCate < menuNode.SelectNodes("Cate").Count; indexCate++)
             {
                 XmlNode cateNode = menuNode.SelectNodes("Cate")[indexCate];
-                FoodData.Type type = GetType(cateNode.Attributes["id"].Value);
+                FoodData.Type type = FoodData.ParseType(cateNode.Attributes["id"].Value);
                 for (int indexFood = 0; indexFood < cateNode.SelectNodes("Food").Count; indexFood++)
                 {
                     XmlNode foodNode = cateNode.SelectNodes("Food")[indexFood];
@@ -243,6 +252,90 @@ namespace KimbapHeaven
             InitLists();
         }
 
+        public async static Task<bool> AddCustomMenu(StorageFile path)
+        {
+            try
+            {
+                XDocument document = XDocument.Load(await xmlFile.OpenStreamForReadAsync());
+                IEnumerable<XElement> xmlCates = document.Element("Menu").Elements("Cate");
+                XElement cateNew = xmlCates.ElementAt(0);
+                XElement cateKimbap = xmlCates.ElementAt(1);
+                XElement cateMeal = xmlCates.ElementAt(2);
+                XElement cateFlourbased = xmlCates.ElementAt(3);
+                XElement catePorkcutlet = xmlCates.ElementAt(4);
+                XElement cateSeason = xmlCates.ElementAt(5);
+                XElement cateUndifined;
+                try
+                {
+                    cateUndifined = xmlCates.ElementAt(6);
+                }
+                catch (ArgumentOutOfRangeException)
+                {
+                    XElement cate6 = new XElement("Cate", new XAttribute("id", (int)FoodData.Type.UNDIFINED));
+                    document.Element("Menu").Add(cate6);
+                    cateUndifined = cate6;
+                }
+                XDocument userDocument = XDocument.Load(await path.OpenStreamForReadAsync());
+                IEnumerable<XElement> cates = userDocument.Element("Menu").Elements("Cate");
+
+                foreach (XElement cate in cates)
+                {
+                    switch (int.Parse(cate.Attribute("id").Value))
+                    {
+                        case (int)FoodData.Type.NEW:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                cateNew.Add(food);
+                            }
+                            break;
+                        case (int)FoodData.Type.KIMBAP:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                cateKimbap.Add(food);
+                            }
+                            break;
+                        case (int)FoodData.Type.MEAL:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                cateMeal.Add(food);
+                            }
+                            break;
+                        case (int)FoodData.Type.FLOURBASED:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                cateFlourbased.Add(food);
+                            }
+                            break;
+                        case (int)FoodData.Type.PORKCUTLET:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                catePorkcutlet.Add(food);
+                            }
+                            break;
+                        case (int)FoodData.Type.SEASON:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                cateSeason.Add(food);
+                            }
+                            break;
+                        case (int)FoodData.Type.UNDIFINED:
+                            foreach (XElement food in cate.Elements("Food"))
+                            {
+                                cateUndifined.Add(food);
+                            }
+                            break;
+                    }
+                }
+                document.Save(await xmlFile.OpenStreamForWriteAsync());
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         public static List<FoodData> GetMenu()
         {
             return FoodDatas;
@@ -256,6 +349,7 @@ namespace KimbapHeaven
             FoodDatasFLOURBASED = GetMenuByType(FoodData.Type.FLOURBASED);
             FoodDatasPORKCUTLET = GetMenuByType(FoodData.Type.PORKCUTLET);
             FoodDatasSEASON = GetMenuByType(FoodData.Type.SEASON);
+            FoodDatasUNDIFINED = GetMenuByType(FoodData.Type.UNDIFINED);
         }
 
         private static List<FoodData> GetMenuByType(FoodData.Type type)
@@ -291,31 +385,15 @@ namespace KimbapHeaven
                 case FoodData.Type.SEASON:
                     foodDatas = FoodDatasSEASON;
                     break;
+                case FoodData.Type.UNDIFINED:
+                    foodDatas = FoodDatasUNDIFINED;
+                    break;
             }
 
             return foodDatas;
         }
 
-        public static FoodData.Type GetType(string type)
-        {
-            switch (type)
-            {
-                case "31":
-                    return FoodData.Type.NEW;
-                case "25":
-                    return FoodData.Type.KIMBAP;
-                case "26":
-                    return FoodData.Type.MEAL;
-                case "27":
-                    return FoodData.Type.FLOURBASED;
-                case "28":
-                    return FoodData.Type.PORKCUTLET;
-                case "29":
-                    return FoodData.Type.SEASON;
-                default:
-                    return FoodData.Type.UNDIFINED;
-            }
-        }
+        
 
         public static List<FoodData> ConvertListToFoodDataList(List<object> target)
         {
@@ -323,15 +401,15 @@ namespace KimbapHeaven
 
             foreach (object item in target)
             {
-                foodDatas.Add((FoodData) item);
+                foodDatas.Add((FoodData)item);
             }
 
             return foodDatas;
         }
 
-        private static bool ContainsFoodByName(List<Food> foods, string name)
+        private static bool ContainsFoodByName(List<XmlFood> foods, string name)
         {
-            foreach (Food food in foods)
+            foreach (XmlFood food in foods)
             {
                 if (food.Name.Equals(name))
                     return true;
@@ -340,6 +418,16 @@ namespace KimbapHeaven
         }
 
         public static bool ContainsFoodDataByName(IList<object> foods, string name)
+        {
+            foreach (FoodData food in foods)
+            {
+                if (food.Name.Equals(name))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool ContainsFoodDataByName(IList<FoodData> foods, string name)
         {
             foreach (FoodData food in foods)
             {
@@ -387,16 +475,16 @@ namespace KimbapHeaven
                 double cateProgress = ((indexCate + 1) * 100d / cateMax);
                 double foodProgress = ((indexFood + 1) * 100d / foodMax);
                 int totalProgress = Convert.ToInt32(Math.Round((cateProgress + foodProgress) * 100 / 200));
-                progress?.Invoke(totalProgress, "이미지 불러오는 중... " + cateMax + " / " + (indexCate + 1), false);
+                progress?.Invoke(totalProgress, string.Format("이미지 불러오는 중... {0} / {1}", cateMax, indexCate + 1), false);
             };
             sourceImage.SetSource(await RandomAccessStreamReference.CreateFromUri(imageSource).OpenReadAsync());
             var origHeight = sourceImage.PixelHeight;
             var origWidth = sourceImage.PixelWidth;
-            var ratioX = max / (float) origWidth;
-            var ratioY = max / (float) origHeight;
+            var ratioX = max / (float)origWidth;
+            var ratioY = max / (float)origHeight;
             var ratio = Math.Min(ratioX, ratioY);
-            var newHeight = (int) (origHeight * ratio);
-            var newWidth = (int) (origWidth * ratio);
+            var newHeight = (int)(origHeight * ratio);
+            var newWidth = (int)(origWidth * ratio);
 
             sourceImage.DecodePixelWidth = newWidth;
             sourceImage.DecodePixelHeight = newHeight;
@@ -404,24 +492,24 @@ namespace KimbapHeaven
             return sourceImage;
         }
 
-        private class Cate
+        private class XmlCate
         {
             public readonly FoodData.Type type;
-            public readonly List<Food> foods;
+            public readonly List<XmlFood> foods;
 
-            public Cate(FoodData.Type type, List<Food> foods)
+            public XmlCate(FoodData.Type type, List<XmlFood> foods)
             {
                 this.type = type;
                 this.foods = foods;
             }
         }
 
-        private class Food
+        private class XmlFood
         {
             public readonly string Name;
             public readonly string ImgUrl;
 
-            public Food(string Name, string ImgUrl)
+            public XmlFood(string Name, string ImgUrl)
             {
                 this.Name = Name;
                 this.ImgUrl = ImgUrl;

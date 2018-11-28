@@ -1,25 +1,43 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <Menu>
-  <Cate id="31">
-    <Food name="파스타">
-      <Price>6500</Price>
-      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25854cbbf8.png</Url>
+  <!--
+  카테고리
+  
+  - Attr -
+  id: 카테고리 ID
+  
+  - 카테고리 ID -
+  31: 신메뉴
+  25: 김밥
+  26: 식사
+  27: 분식
+  28: 돈까스
+  29: 계절
+  0: 정의되지 않음 (기타)
+  -->
+  <!--
+  음식
+  
+  - Attr -
+  name: 이름*
+  
+  - Node -
+  Price: 가격*
+  Url: 사진 주소*
+  EAN: 상품 EAN 코드 (바코드)
+  
+  *: 필수
+  -->
+  <Cate id="0">
+    <Food name="코카콜라 (캔)">
+      <Price>1000</Price>
+      <Url>http://img.danawa.com/prod_img/500000/236/157/img/3157236_1.jpg</Url>
+      <EAN>8801094017200</EAN>
     </Food>
-    <Food name="까르보라면">
-      <Price>6000</Price>
-      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25854516d1.jpg</Url>
-    </Food>
-    <Food name="까르보떡볶이">
-      <Price>6000</Price>
-      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25853464a4.png</Url>
-    </Food>
-    <Food name="해물파스타">
-      <Price>6000</Price>
-      <Url>https://cdn.imweb.me/thumbnail/20170416/58f25855e6128.jpg</Url>
-    </Food>
-    <Food name="매운볶음우동">
-      <Price>7000</Price>
-      <Url>https://cdn.imweb.me/thumbnail/20170416/58f2587c193cf.jpg</Url>
+    <Food name="팹시 (캔)">
+      <Price>900</Price>
+      <Url>http://img.danawa.com/prod_img/500000/722/205/img/2205722_1.jpg</Url>
+      <EAN>8801056070809</EAN>
     </Food>
   </Cate>
 </Menu>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -54,7 +55,7 @@ namespace KimbapHeaven
 
                 if (e.PreviousExecutionState == ApplicationExecutionState.Terminated)
                 {
-                    //TODO: 이전에 일시 중지된 응용 프로그램에서 상태를 로드합니다.
+                    // 이전에 일시 중지된 응용 프로그램에서 상태를 로드합니다.
                 }
 
                 //  Display an extended splash screen if app was not previously running.
@@ -102,8 +103,9 @@ namespace KimbapHeaven
         /// <param name="e">일시 중단 요청에 대한 세부 정보입니다.</param>
         private void OnSuspending(object sender, SuspendingEventArgs e)
         {
+            StateManager.SaveState();
+
             var deferral = e.SuspendingOperation.GetDeferral();
-            //TODO: 응용 프로그램 상태를 저장하고 백그라운드 작업을 모두 중지합니다.
             deferral.Complete();
         }
     }

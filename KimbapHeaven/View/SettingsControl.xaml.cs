@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Storage;
+using Windows.Storage.Pickers;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -37,6 +40,46 @@ namespace KimbapHeaven
             };
             #endregion
 
+            #region AddMenuButton
+            AddMenuButton.Click += async (sender, e) =>
+            {
+                FileOpenPicker fileOpenPicker = new FileOpenPicker
+                {
+                    ViewMode = PickerViewMode.List
+                };
+                fileOpenPicker.FileTypeFilter.Add(".xml");
+                StorageFile file = await fileOpenPicker.PickSingleFileAsync();
+                if (file != null)
+                {
+                    AddingPanel.Visibility = Visibility.Visible;
+                    bool result = await Utils.AddCustomMenu(file);
+                    AddingPanel.Visibility = Visibility.Collapsed;
+                    if (result)
+                    {
+                        StatusSymbol.Symbol = Symbol.Accept;
+                    }
+                    else
+                    {
+                        StatusSymbol.Symbol = Symbol.Important;
+                    }
+
+                    #pragma warning disable CS4014
+                    Task.Delay(500).ContinueWith(obj =>
+                    {
+                        StatusSymbol.Opacity = 0.01;
+                        Task.Delay(500).ContinueWith(o =>
+                        {
+                            StatusSymbol.Visibility = Visibility.Collapsed;
+                            StatusSymbol.Opacity = 1;
+                        }, TaskScheduler.FromCurrentSynchronizationContext());
+                    }, TaskScheduler.FromCurrentSynchronizationContext());
+                    #pragma warning restore CS4014
+
+                    StatusSymbol.Visibility = Visibility.Visible;
+                }
+            };
+            #endregion
+
             #region SeatSlider
             SeatSliderText.Text = seatSize.ToString();
             SeatSlider.Value = seatSize;
@@ -63,7 +106,7 @@ namespace KimbapHeaven
 
         private void ImageQualityRadio_Checked(object sender, RoutedEventArgs e)
         {
-            RadioButton radioButton = (RadioButton) sender;
+            RadioButton radioButton = (RadioButton)sender;
             Settings.PutString("ImageQuality", radioButton.Tag.ToString());
         }
 
@@ -75,9 +118,8 @@ namespace KimbapHeaven
 
         private void SeatSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
-            Settings.PutInt("seat_size", (int) e.NewValue);
+            Settings.PutInt("seat_size", (int)e.NewValue);
             SeatSliderText.Text = e.NewValue.ToString();
-            //ViewModel.Update((int) e.NewValue);
         }
     }
 }
